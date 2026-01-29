@@ -32,6 +32,8 @@ const initialise = async () => {
   }
 };
 
+
+
 app.get("/api/healthz", (req, res) => {
   try {
     res.status(200).json({ ok: true });
@@ -69,6 +71,7 @@ if (max_views === "" || max_views === null) {
   created_at: getNow(req),
 };
     await redis.set(id,pasteContent)
+    await redis.sadd("pastes:index", id);
     res.status(201).json({
       ok: true,
       id,
@@ -83,9 +86,9 @@ if (max_views === "" || max_views === null) {
 app.get("/api/pastes/:id", async (req, res) => {
   const { id } = req.params;
   const pasteVal = await redis.get(id);
-  if (!pasteVal) {
-  
-    return res.status(404).json({ ok: false, error: "paste not found" });
+  if (!pasteVal || isExpired(pasteVal) || !hasViewsLeft(pasteVal)) {
+    if (pasteVal) { await redis.del(id); await redis.srem("pastes:index", id); }
+    return res.status(404).json({ ok: false, error: "page not found" });
   }
 
   let now = getNow(req);
@@ -96,6 +99,8 @@ app.get("/api/pastes/:id", async (req, res) => {
   }
   decrementViews(pasteVal);
 await redis.set(id, pasteVal);
+  
+  
   res.status(200).json({
     content: pasteVal.content,
     remaining_views: pasteVal.remaining_views,
@@ -110,6 +115,7 @@ app.get("/p/:id",async (req,res)=>{
    
     return res.status(404).json({ ok: false, error: "paste not found" });
   }
+  
  
   let now = getNow(req);
   if (isExpired(pasteVal, now) || !hasViewsLeft(pasteVal)) {
@@ -131,6 +137,21 @@ return res.status(404).json({
     </html>`
   );
 })
+
+app.get("/api/pastes", async (req, res) => {
+  const ids = await redis.smembers("pastes:index");
+  const pastes = [];
+  for (const id of ids) {
+    const paste = await redis.get(id);
+    if (!paste || isExpired(paste) || !hasViewsLeft(paste)) {
+      if (paste) { await redis.del(id); await redis.srem("pastes:index", id); }
+      continue;
+    }
+    pastes.push({ id, url: `${BASE_URL}/p/${id}` });
+  }
+  res.json(pastes);
+});
+
 initialise();
 
 export default app;
