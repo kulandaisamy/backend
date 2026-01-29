@@ -61,12 +61,13 @@ if (max_views !== undefined) {
   }
 }
     let id = Math.random().toString(36).slice(2, 10);
+   
     const pasteContent = {
-      content,
-      remaining_views: max_views,
-      time_limit: ttl_seconds,
-      created_at: getNow(req),
-    };
+  content,
+  remaining_views: max_views ?? null,
+  time_limit: ttl_seconds ?? null,
+  created_at: getNow(req),
+};
     await redis.set(id,pasteContent)
     res.status(201).json({
       ok: true,
@@ -75,6 +76,7 @@ if (max_views !== undefined) {
     });
   } catch (e) {
     console.error(e);
+     res.status(500).json({ ok: false, error: "server error" });
   }
 });
 
@@ -93,7 +95,7 @@ app.get("/api/pastes/:id", async (req, res) => {
     return res.status(404).json({ ok: false });
   }
   decrementViews(pasteVal);
-
+await redis.set(id, pasteVal);
   res.status(200).json({
     content: pasteVal.content,
     remaining_views: pasteVal.remaining_views,
@@ -113,10 +115,13 @@ app.get("/p/:id",async (req,res)=>{
   if (isExpired(pasteVal, now) || !hasViewsLeft(pasteVal)) {
    
     await redis.del(id);
-    return res.status(404).json({ ok: false });
+return res.status(404).json({
+  ok: false,
+  error: "paste not found",
+});
   }
   decrementViews(pasteVal);
-  
+  await redis.set(id, pasteVal);
   res.status(200).type("text/html").send(
     `<!DOCTYPE html>
     <html>
