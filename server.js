@@ -46,13 +46,13 @@ app.post("/api/pastes", async (req, res) => {
     let { content, ttl_seconds, max_views } = req.body;
 
 if (ttl_seconds === "" || ttl_seconds === null) {
-  ttl_seconds = undefined;
+  ttl_seconds = null;
 } else {
   ttl_seconds = Number(ttl_seconds);
 }
 
 if (max_views === "" || max_views === null) {
-  max_views = undefined;
+  max_views = null;
 } else {
   max_views = Number(max_views);
 }
