@@ -16,7 +16,7 @@ const redis=new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
   token: process.env.UPSTASH_REDIS_REST_TOKEN,
 })
-
+const baseUrl="https://frontend-paste.vercel.app"
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -72,7 +72,7 @@ if (max_views === "" || max_views === null) {
     res.status(201).json({
       ok: true,
       id,
-      url: `http://localhost:4000/p/${id}`,
+      url: `${baseUrl}/p/${id}`,
     });
   } catch (e) {
     console.error(e);
